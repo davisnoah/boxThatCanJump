@@ -2,18 +2,19 @@
 
 ## Controls
 
-W - Jump
-A - Go left
-S - Go Right
-D - Slam Down
+- W - Jump
+- A - Go left
+- S - Go Right
+- D - Slam Down
 
-Up Arrow Key - Jump
-Left Arrow Key - Go left
-Right Arrow Key - Go right
-Down Arrow Key - Slam Down
+- Up Arrow Key - Jump
+- Left Arrow Key - Go left
+- Right Arrow Key - Go right
+- Down Arrow Key - Slam Down
 
-CTRL + MINUS SYMBOL to zoom out
-CTRL + PLUS SYMBOL to zoom in
+- CTRL + MINUS SYMBOL to zoom out
+
+- CTRL + PLUS SYMBOL to zoom in
 
 ## Notes
 
