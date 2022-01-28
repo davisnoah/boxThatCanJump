@@ -1,4 +1,4 @@
-# boxThatCanJump 0.8.7
+# boxThatCanJump
 
 ## Controls
 
@@ -23,8 +23,8 @@
 
 ## Notes
 
-The number on top helps you keep track of your score and does literally nothing else.
+The number on top helps you keep track of your points. Points can't be used to do anything.
 
-Is the game a fun way to pass the time? Maybe. Is it a complete waste of your time? Most definitely. But the code behind it is dope, I promise. Especially that one function.
+Is the game a fun way to pass the time? No. Would I recommend it to anyone? Of course not. But that one function is super clean though.
 
-Okay okay I know my code is supposed to be dry alright. Get off my back mom. It'll be fixed by the end of the week.
+Currently working on making the code base dope, i.e. written with best pracitices for cleaner, more efficient and easliy understood code.
