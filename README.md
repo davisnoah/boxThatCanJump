@@ -27,4 +27,4 @@ The number on top helps you keep track of your points. Points can't be used to d
 
 Is the game a fun way to pass the time? No. Would I recommend it to anyone? Of course not. But that one function is super clean though.
 
-Currently working on making the code base dope, i.e. written with best pracitices for cleaner, more efficient and easliy understood code.
+Currently working on making the code base dope, i.e. written with best pracitices for cleaner, more efficient and easily understood code.
