@@ -6,8 +6,8 @@
 }
 
 /* ======================
-    PRESETS AND RESETS
-   ====================== */
+      PRESETS AND RESETS
+     ====================== */
 *,
 *::before,
 *::after {
@@ -22,15 +22,16 @@ body {
 }
 
 h1 {
-  font-size: 3.125rem; /*50px*/
+  font-size: min(3.125rem, 5vw);
   font-weight: 400;
 }
 
 /* ======================
-    CLASS SETS
-   ====================== */
+      CLASSES AND IDS
+     ====================== */
 .main {
   width: 100%;
+  padding: 0 5%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -43,9 +44,16 @@ h1 {
   color: #555;
 }
 
+.gameVersion {
+  font-size: min(1.875rem, 3vw);
+}
+
 #c {
   box-shadow: 0px 0px 20px 0px;
   border-radius: 5px;
   display: block;
   margin: auto;
+  width: 100%;
+  height: calc(var(--c-width) / 2);
+  --c-width: calc(100%);
 }
