@@ -5,6 +5,7 @@ const ctx = c.getContext("2d");
 //Defines a standard unit of measurement to make game responsive
 const unit = c.width/100;
 
+
 /* ===============================
           Class Definitions
    =============================== */
@@ -13,6 +14,14 @@ const unit = c.width/100;
 class GameComponent {
   constructor (type) {
     this.type = type;
+  }
+}
+
+//Constructs Physics Class
+class Physics extends GameComponent {
+  constructor (magnitude) {
+    super("physics");
+    this.magnitude = magnitude;
   }
 }
 
@@ -39,10 +48,15 @@ class Structure extends GameComponent {
 
 //Constructs Player Class
 class Player extends Structure {
-  constructor (type, width, height, x, y, color) {
-    super(type, width, height, x, y, color);
-    this.yStart = floor.y - this.height;
-    this.y = this.yStart;
+  constructor (width, height, x, y, color) {
+    super("dynamic", width, height, x, y, color);
+    this.y = c.height*2/3 - this.height;
+    this.jumpInit = false;
+    this.isJumping = false;
+    this.jumpReady = false;
+    this.jumpPower = 3*unit;
+    this.jumpI = 0; 
+    this.airTime = 0;
   }
 
   // Adds player glow
@@ -59,10 +73,20 @@ class Food extends Structure {
   }
 }
 
-//Game Component initializations
-const floor = new Structure("fixed", c.width, c.height*1/3, 0, c.height*2/3, "#333");
-const bg = new Structure("fixed", c.width, c.height*2/3, 0, 0, "#222")
-const player1 = new Player("dynamic", 5*unit, 5*unit, 10*unit, null, "#0ff");
+
+/* ===============================
+      Game Objects Construction
+   =============================== */
+
+//Creates game components
+const game = {
+  gravity: new Physics(.25*unit),
+  floor: new Structure("fixed", c.width, c.height*1/3, 0, c.height*2/3, "#333"),
+  bg: new Structure("fixed", c.width, c.height*2/3 + 1*unit, 0, 0, "#222"),
+  player: new Player(5*unit, 5*unit, 10*unit, null, "#0ff")
+}
+const { gravity, floor, bg, player } = game;
+
 
 /* ===============================
       Game Functions Definition
@@ -76,27 +100,129 @@ const clearCanvas = () => {
 //Draws the floor and background
 const drawMap = () => {
   bg.draw();
-  floor.draw()
+  floor.draw();
+}
+
+/*
+this.jumpInit = false;
+this.isJumping = false;
+this.jumpReady = true;
+this.jumpPower = 3*unit;
+this.jumpI = 0; 
+
+this.airTime = 0;
+*/
+
+//Allows Player to Jump
+const applyJump = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.jumpReady) {
+      if (comp.jumpPower > gravity.magnitude * comp.airTime) {
+        comp.jumpReady = false;
+        if (comp.y === floor.y - comp.height) {
+          comp.jumpReady = true;
+        }
+      }
+      //test
+      console.log(comp.jumpPower, gravity.magnitude * comp.airTime, comp.jumpReady);
+      if (comp.y === floor.y - comp.height) {
+        comp.jumpReady = false;
+        comp.isJumping = true;
+      }
+    }
+    if (comp.isJumping) {
+      comp.y -= comp.jumpPower;
+      comp.jumpI++;
+      if (comp.y === floor.y - comp.height) {
+        comp.jumpI = 0;
+        comp.isJumping = false;
+      }
+    }
+  }
+}
+
+//Keeps up with how long an object has been in the air.
+const calcAirTime = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.type === "dynamic") {
+      if (comp.y < floor.y - comp.height) {
+        comp.airTime++;
+      } else {
+        comp.airTime = 0;
+      }
+    }
+  }
+}
+
+//Creates a downward pull on dynamic structures
+const applyGravity = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.type === "dynamic" && comp.y < floor.y - comp.height) {
+      comp.y += gravity.magnitude * comp.airTime;
+    }
+  }
+}
+
+//Prevents stcuctures from clipping through the ground
+const yCorrection = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.type === "dynamic" && comp.y > floor.y - comp.height) {
+      comp.y = floor.y - comp.height;
+    }
+  }
 }
 
 //Draws Player One
-const drawPlayerOne = () => {
-  player1.addGlow();
-  player1.draw();
+const drawPlayer = () => {
+  player.addGlow();
+  player.draw();
 }
+
 
 /* ===============================
     Game Functions Implementation 
    =============================== */
-
-//Runs all game functions every frame.
+   
+//Calls all game functions every frame.
 const animate = () => {
+
   window.requestAnimationFrame(animate);
   
   clearCanvas();
   drawMap();
-  drawPlayerOne();
+  calcAirTime();
+  applyGravity();
+  applyJump();
+  yCorrection();
+  drawPlayer();
   
 }
 
 animate();
+
+//CONTROLS
+window.addEventListener("keydown", function (e) {
+  if (e.key == "w" || e.key == "ArrowUp" || e.key == "W") {
+    player.jumpReady = true;
+  }
+})
+/* ===============================
+              Problems
+   =============================== */
+const problems = [
+  'else???',
+  'Player\'s jumpPower should build up like mario',
+  'Player should only be able to jump while on the ground',
+  'Player needs to rotate 90deg after every jump',
+  'Player needs to move forward after every jump',
+  'Player needs to be queued to jump if g is greater than jumpPower and player wants to jump',
+  'Ground needs to glow when player falls',
+  'There needs to be friction',
+  'Walls need to bounce player off them',
+  'There needs to be food',
+  'Needs Improved Documentation',
+];
