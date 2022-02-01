@@ -48,15 +48,18 @@ class Structure extends GameComponent {
 
 //Constructs Player Class
 class Player extends Structure {
-  constructor (width, height, x, y, color) {
+  constructor (width, height, x, y, direction, color) {
     super("dynamic", width, height, x, y, color);
     this.y = c.height*2/3 - this.height;
+    this.airTime = 0;
+    this.direction = direction;
     this.jumpInit = false;
     this.isJumping = false;
-    this.jumpReady = false;
-    this.jumpPower = 3*unit;
-    this.jumpI = 0; 
-    this.airTime = 0;
+    this.jumpPowerInit = 2*unit;
+    this.jumpPower = this.jumpPowerInit;
+    this.jumpPowerMax = 3*unit;
+    this.jumpChargeTimeInit = 5;
+    this.jumpChargeTime = this.jumpChargeTimeInit;
   }
 
   // Adds player glow
@@ -83,7 +86,7 @@ const game = {
   gravity: new Physics(.25*unit),
   floor: new Structure("fixed", c.width, c.height*1/3, 0, c.height*2/3, "#333"),
   bg: new Structure("fixed", c.width, c.height*2/3 + 1*unit, 0, 0, "#222"),
-  player: new Player(5*unit, 5*unit, 10*unit, null, "#0ff")
+  player: new Player(5*unit, 5*unit, 10*unit, null, 1, "#0ff")
 }
 const { gravity, floor, bg, player } = game;
 
@@ -103,42 +106,43 @@ const drawMap = () => {
   floor.draw();
 }
 
-/*
-this.jumpInit = false;
-this.isJumping = false;
-this.jumpReady = true;
-this.jumpPower = 3*unit;
-this.jumpI = 0; 
-
-this.airTime = 0;
-*/
 
 //Allows Player to Jump
 const applyJump = () => {
   for (let comp in game) {
     comp = game[comp];
-    if (comp.jumpReady) {
-      if (comp.jumpPower > gravity.magnitude * comp.airTime) {
-        comp.jumpReady = false;
-        if (comp.y === floor.y - comp.height) {
-          comp.jumpReady = true;
+    if (comp.y >= floor.y - comp.height && comp.jumpInit) {
+      comp.isJumping = true;
+      if (comp.jumpChargeTime > 0) {
+        comp.jumpPower += (comp.jumpPowerMax - comp.jumpPowerInit)/2;
+        if (comp.jumpPower > comp.jumpPowerMax) {
+          comp.jumpPower = comp.jumpPowerMax;
         }
-      }
-      //test
-      console.log(comp.jumpPower, gravity.magnitude * comp.airTime, comp.jumpReady);
-      if (comp.y === floor.y - comp.height) {
-        comp.jumpReady = false;
-        comp.isJumping = true;
       }
     }
     if (comp.isJumping) {
       comp.y -= comp.jumpPower;
-      comp.jumpI++;
-      if (comp.y === floor.y - comp.height) {
-        comp.jumpI = 0;
-        comp.isJumping = false;
+      if (comp.y <= floor.y - comp.height && comp.jumpPower > (gravity.magnitude * comp.airTime)) {
+        comp.jumpInit = false;
+        comp.jumpChargeTime = comp.jumpChargeTimeInit;
+      }
+      if (comp.y >= floor.y - comp.height) {
+        if (comp.jumpInit === false) {
+          comp.isJumping = false;
+        }
       }
     }
+    if (comp.y >= floor.y - comp.height && comp.isJumping === false) {
+      comp.jumpChargeTime--;
+      if (comp.jumpChargeTime < 0) {
+        comp.jumpChargeTime = 0;
+      }
+      comp.jumpPower -= .05*unit;
+      if (comp.jumpPower < comp.jumpPowerInit) {
+        comp.jumpPower = comp.jumpPowerInit;
+      }
+    }
+
   }
 }
 
@@ -176,7 +180,7 @@ const yCorrection = () => {
   }
 }
 
-//Draws Player One
+//Draws Player
 const drawPlayer = () => {
   player.addGlow();
   player.draw();
@@ -204,25 +208,36 @@ const animate = () => {
 
 animate();
 
-//CONTROLS
+/* ===============================
+       Game Controls Settings
+   =============================== */
 window.addEventListener("keydown", function (e) {
   if (e.key == "w" || e.key == "ArrowUp" || e.key == "W") {
-    player.jumpReady = true;
+    player.jumpInit = true;
   }
-})
+});
+window.addEventListener("keydown", function (e) {
+  if (e.key == "a" || e.key == "ArrowLeft" || e.key == "A") {
+    player.direction = -1;
+  }
+});
+window.addEventListener("keydown", function (e) {
+  if (e.key == "d" || e.key == "ArrowRight" || e.key == "D") {
+    player.direction = 1;
+  }
+});
+
 /* ===============================
               Problems
    =============================== */
 const problems = [
-  'else???',
-  'Player\'s jumpPower should build up like mario',
-  'Player should only be able to jump while on the ground',
+  'Size of game should only be changed at beginning of game',
   'Player needs to rotate 90deg after every jump',
   'Player needs to move forward after every jump',
-  'Player needs to be queued to jump if g is greater than jumpPower and player wants to jump',
   'Ground needs to glow when player falls',
   'There needs to be friction',
   'Walls need to bounce player off them',
   'There needs to be food',
   'Needs Improved Documentation',
+  'Needs graph explaining player status',
 ];
