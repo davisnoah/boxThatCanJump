@@ -3,6 +3,8 @@ const c = document.querySelector("#c");
 const ctx = c.getContext("2d");
 
 //Defines a standard unit of measurement to make game responsive
+c.width = window.innerWidth * 4 / 5;
+c.height = c.width / 2;
 const unit = c.width/100;
 
 
@@ -55,11 +57,15 @@ class Player extends Structure {
     this.direction = direction;
     this.jumpInit = false;
     this.isJumping = false;
-    this.jumpPowerInit = 2*unit;
+    this.jumpPowerInit = 1.75*unit;
     this.jumpPower = this.jumpPowerInit;
     this.jumpPowerMax = 3*unit;
     this.jumpChargeTimeInit = 5;
     this.jumpChargeTime = this.jumpChargeTimeInit;
+    this.speed = 0;
+    this.speedCap = this.jumpPowerInit;
+    this.acceleration = this.jumpPowerInit/3;
+    this.mass = 1;
   }
 
   // Adds player glow
@@ -83,12 +89,13 @@ class Food extends Structure {
 
 //Creates game components
 const game = {
+  friction: new Physics(.05*unit),
   gravity: new Physics(.25*unit),
   floor: new Structure("fixed", c.width, c.height*1/3, 0, c.height*2/3, "#333"),
   bg: new Structure("fixed", c.width, c.height*2/3 + 1*unit, 0, 0, "#222"),
   player: new Player(5*unit, 5*unit, 10*unit, null, 1, "#0ff")
 }
-const { gravity, floor, bg, player } = game;
+const { friction, gravity, floor, bg, player } = game;
 
 
 /* ===============================
@@ -113,8 +120,12 @@ const applyJump = () => {
     comp = game[comp];
     if (comp.y >= floor.y - comp.height && comp.jumpInit) {
       comp.isJumping = true;
+      comp.speed += comp.acceleration;
+      if (comp.speed > comp.speedCap) {
+        comp.speed = comp.speedCap;
+      }
       if (comp.jumpChargeTime > 0) {
-        comp.jumpPower += (comp.jumpPowerMax - comp.jumpPowerInit)/2;
+        comp.jumpPower += (comp.jumpPowerMax - comp.jumpPowerInit)/5;
         if (comp.jumpPower > comp.jumpPowerMax) {
           comp.jumpPower = comp.jumpPowerMax;
         }
@@ -142,7 +153,16 @@ const applyJump = () => {
         comp.jumpPower = comp.jumpPowerInit;
       }
     }
+  }
+}
 
+//Allows player to move forward
+const applyShift = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.speed) {
+      comp.x += comp.speed * comp.direction;
+    }
   }
 }
 
@@ -166,6 +186,21 @@ const applyGravity = () => {
     comp = game[comp];
     if (comp.type === "dynamic" && comp.y < floor.y - comp.height) {
       comp.y += gravity.magnitude * comp.airTime;
+    }
+  }
+}
+
+//Creates a force opposing the sideways force propelling components
+const applyFriction = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.y >= floor.y - comp.height) {
+      if (comp.speed > 0) {
+        comp.speed -= friction.magnitude;
+      }
+      if (comp.speed < 0) {
+        comp.speed = 0;
+      }
     }
   }
 }
@@ -200,7 +235,9 @@ const animate = () => {
   drawMap();
   calcAirTime();
   applyGravity();
+  applyFriction();
   applyJump();
+  applyShift();
   yCorrection();
   drawPlayer();
   
@@ -226,6 +263,11 @@ window.addEventListener("keydown", function (e) {
     player.direction = 1;
   }
 });
+window.addEventListener("keydown", function (e) {
+  if (e.key == "s" || e.key == "ArrowDown" || e.key == "D") {
+    player.speed = 0;
+  }
+})
 
 /* ===============================
               Problems
