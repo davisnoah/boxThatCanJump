@@ -46,26 +46,33 @@ class Structure extends GameComponent {
     ctx.fillRect(this.x, this.y, this.width, this.height);
     ctx.shadowBlur = 0;
   }
+
+  updateProperties() {
+    this.xCenter = this.x + this.width/2;
+    this.yCenter = this.y + this.height/2;
+  }
 }
 
 //Constructs Player Class
 class Player extends Structure {
   constructor (width, height, x, y, direction, color) {
     super("dynamic", width, height, x, y, color);
-    this.y = c.height*2/3 - this.height;
-    this.airTime = 0;
     this.direction = direction;
+    this.mass = 1;
+    this.airTime = 0;
     this.jumpInit = false;
     this.isJumping = false;
     this.jumpPowerInit = 1.75*unit;
     this.jumpPower = this.jumpPowerInit;
-    this.jumpPowerMax = 3*unit;
+    this.jumpPowerMax = 2.5*unit;
     this.jumpChargeTimeInit = 5;
     this.jumpChargeTime = this.jumpChargeTimeInit;
     this.speed = 0;
-    this.speedCap = this.jumpPowerInit;
-    this.acceleration = this.jumpPowerInit/3;
-    this.mass = 1;
+    this.speedCap = this.jumpPowerInit/2;
+    this.acceleration = this.jumpPowerInit/5;
+    this.rotation = 0;
+    this.rotationI = 0;
+    this.rotationN = 0;
   }
 
   // Adds player glow
@@ -93,7 +100,7 @@ const game = {
   gravity: new Physics(.25*unit),
   floor: new Structure("fixed", c.width, c.height*1/3, 0, c.height*2/3, "#333"),
   bg: new Structure("fixed", c.width, c.height*2/3 + 1*unit, 0, 0, "#222"),
-  player: new Player(5*unit, 5*unit, 10*unit, null, 1, "#0ff")
+  player: new Player(5*unit, 5*unit, 10*unit, 8*unit, 1, "#0ff"),
 }
 const { friction, gravity, floor, bg, player } = game;
 
@@ -111,59 +118,6 @@ const clearCanvas = () => {
 const drawMap = () => {
   bg.draw();
   floor.draw();
-}
-
-
-//Allows Player to Jump
-const applyJump = () => {
-  for (let comp in game) {
-    comp = game[comp];
-    if (comp.y >= floor.y - comp.height && comp.jumpInit) {
-      comp.isJumping = true;
-      comp.speed += comp.acceleration;
-      if (comp.speed > comp.speedCap) {
-        comp.speed = comp.speedCap;
-      }
-      if (comp.jumpChargeTime > 0) {
-        comp.jumpPower += (comp.jumpPowerMax - comp.jumpPowerInit)/5;
-        if (comp.jumpPower > comp.jumpPowerMax) {
-          comp.jumpPower = comp.jumpPowerMax;
-        }
-      }
-    }
-    if (comp.isJumping) {
-      comp.y -= comp.jumpPower;
-      if (comp.y <= floor.y - comp.height && comp.jumpPower > (gravity.magnitude * comp.airTime)) {
-        comp.jumpInit = false;
-        comp.jumpChargeTime = comp.jumpChargeTimeInit;
-      }
-      if (comp.y >= floor.y - comp.height) {
-        if (comp.jumpInit === false) {
-          comp.isJumping = false;
-        }
-      }
-    }
-    if (comp.y >= floor.y - comp.height && comp.isJumping === false) {
-      comp.jumpChargeTime--;
-      if (comp.jumpChargeTime < 0) {
-        comp.jumpChargeTime = 0;
-      }
-      comp.jumpPower -= .05*unit;
-      if (comp.jumpPower < comp.jumpPowerInit) {
-        comp.jumpPower = comp.jumpPowerInit;
-      }
-    }
-  }
-}
-
-//Allows player to move forward
-const applyShift = () => {
-  for (let comp in game) {
-    comp = game[comp];
-    if (comp.speed) {
-      comp.x += comp.speed * comp.direction;
-    }
-  }
 }
 
 //Keeps up with how long an object has been in the air.
@@ -205,20 +159,117 @@ const applyFriction = () => {
   }
 }
 
-//Prevents stcuctures from clipping through the ground
+
+//Allows Player to Jump
+const applyJump = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.y >= floor.y - comp.height && comp.jumpInit) {
+      comp.isJumping = true;
+      comp.speed += comp.acceleration;
+      if (comp.speed > comp.speedCap) {
+        comp.speed = comp.speedCap;
+      }
+      if (comp.jumpChargeTime > 0) {
+        comp.jumpPower += (comp.jumpPowerMax - comp.jumpPowerInit)/5;
+        if (comp.jumpPower > comp.jumpPowerMax) {
+          comp.jumpPower = comp.jumpPowerMax;
+        }
+      }
+      let simPow = comp.jumpPower;
+      let simY = 0;
+      let simG = gravity.magnitude;
+      let simAir = -1;
+
+      do {
+        simAir++;
+        simY -= simPow;
+        simY += simG * simAir;
+      } while (simY < 0);
+      player.rotationI = simAir;
+    }
+    if (comp.isJumping) {
+      comp.y -= comp.jumpPower;
+      if (comp.y <= floor.y - comp.height && comp.jumpPower > (gravity.magnitude * comp.airTime)) {
+        comp.jumpInit = false;
+        comp.jumpChargeTime = comp.jumpChargeTimeInit;
+      }
+      if (comp.y >= floor.y - comp.height) {
+        if (comp.jumpInit === false) {
+          comp.isJumping = false;
+        }
+        comp.rotationN += comp.direction;
+      }
+    }
+    if (comp.y >= floor.y - comp.height && comp.isJumping === false) {
+      comp.jumpChargeTime--;
+      if (comp.jumpChargeTime < 0) {
+        comp.jumpChargeTime = 0;
+      }
+      if (comp.jumpChargeTime === 0) {
+        comp.jumpPower -= .05*unit;
+        if (comp.jumpPower < comp.jumpPowerInit) {
+          comp.jumpPower = comp.jumpPowerInit;
+        }
+      }
+    }
+  }
+}
+
+//Allows player to move forward
+const applyShift = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    if (comp.speed) {
+      comp.x += comp.speed * comp.direction;
+    }
+  }
+}
+
+const applyWall = () => {
+  for (let comp in game) {
+    comp = game[comp];
+    let { type, x, direction, width } = comp; 
+    if (type === 'dynamic') {
+      if (x < 0 && direction === -1) {
+        comp.x = 0;
+        comp.direction = 1;
+      }
+      if (x > c.width - width && direction === 1) {
+        comp.x = c.width - width;
+        comp.direction = -1;
+      }
+    }
+  }
+}
+
+//Prevents structures from clipping through the ground
 const yCorrection = () => {
   for (let comp in game) {
     comp = game[comp];
-    if (comp.type === "dynamic" && comp.y > floor.y - comp.height) {
-      comp.y = floor.y - comp.height;
+    let { type, y, height } = comp;
+    if (type === "dynamic" && y > floor.y - height) {
+      comp.y = floor.y - height;
     }
   }
 }
 
 //Draws Player
 const drawPlayer = () => {
+  player.updateProperties();
   player.addGlow();
+
+  if (player.y < floor.y - player.height) {
+    player.rotation += 90/player.rotationI;
+  } else {
+    player.rotation = 90 * player.rotationN;
+  }
+
+  ctx.translate(player.xCenter, player.yCenter);
+  ctx.rotate(player.rotation * player.direction * (Math.PI / 180));
+  ctx.translate(-player.xCenter, -player.yCenter);
   player.draw();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 
@@ -238,6 +289,7 @@ const animate = () => {
   applyFriction();
   applyJump();
   applyShift();
+  applyWall();
   yCorrection();
   drawPlayer();
   
@@ -259,27 +311,25 @@ window.addEventListener("keydown", function (e) {
   }
 });
 window.addEventListener("keydown", function (e) {
+  if (e.key == "s" || e.key == "ArrowDown" || e.key == "D") {
+    player.speed = 0;
+    player.jumpPower = player.jumpPowerInit;
+    player.jumpChargeTime = 0;
+  }
+})
+window.addEventListener("keydown", function (e) {
   if (e.key == "d" || e.key == "ArrowRight" || e.key == "D") {
     player.direction = 1;
   }
 });
-window.addEventListener("keydown", function (e) {
-  if (e.key == "s" || e.key == "ArrowDown" || e.key == "D") {
-    player.speed = 0;
-  }
-})
 
 /* ===============================
               Problems
    =============================== */
 const problems = [
-  'Size of game should only be changed at beginning of game',
-  'Player needs to rotate 90deg after every jump',
-  'Player needs to move forward after every jump',
   'Ground needs to glow when player falls',
-  'There needs to be friction',
-  'Walls need to bounce player off them',
   'There needs to be food',
+  'Stop repeating the for (let comp in game) loop',
   'Needs Improved Documentation',
   'Needs graph explaining player status',
 ];
