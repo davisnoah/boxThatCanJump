@@ -22,7 +22,7 @@ class GameComponent {
 //Constructs Physics Class
 class Physics extends GameComponent {
   constructor (magnitude) {
-    super("physics");
+    super(["physics"]);
     this.magnitude = magnitude;
   }
 }
@@ -47,16 +47,23 @@ class Structure extends GameComponent {
     ctx.shadowBlur = 0;
   }
 
-  updateProperties() {
+  //Updates the coords of the center of the structure with new coords
+  updateCenter() {
     this.xCenter = this.x + this.width/2;
     this.yCenter = this.y + this.height/2;
+  }
+
+  //Adds glow to structure
+  addGlow() {
+    ctx.shadowBlur = 2*unit;
+    ctx.shadowColor = this.color;
   }
 }
 
 //Constructs Player Class
 class Player extends Structure {
   constructor (width, height, x, y, direction, color) {
-    super("dynamic", width, height, x, y, color);
+    super(["dynamic", "consumer"], width, height, x, y, color);
     this.direction = direction;
     this.mass = 1;
     this.airTime = 0;
@@ -73,19 +80,51 @@ class Player extends Structure {
     this.rotation = 0;
     this.rotationI = 0;
     this.rotationN = 0;
-  }
-
-  // Adds player glow
-  addGlow() {
-    ctx.shadowBlur = 2*unit;
-    ctx.shadowColor = this.color;
+    this.score = 0;
   }
 }
 
 //Constructs Food Class
 class Food extends Structure {
-  constructor (type, width, height, x, y, color) {
-    super(type, width, height, x, y, color);
+  constructor () {
+    let width = Math.random() * 1*unit + 1.5*unit;
+    let height = width;
+    let colors = ['#0f8', '#f88', '#ff8', '#8ff', '#f8f', '#fff'];
+    super (
+      "fixed", 
+      width, 
+      height, 
+      Math.random() * (c.width - width), 
+      (Math.random() * 1/3*c.height - height) + 1/3*c.height, 
+      colors[Math.floor(Math.random() * colors.length)], 
+    )
+    this.score = this.width/2;
+    this.colors = colors;  
+    this.exists = true;
+    this.spawnTimeInit = 45;
+    this.spawnTime = this.spawnTimeInit;
+    this.dreg = {
+      counter: 0,
+      counterCap: 10,
+      color: "#fff",
+      draw(x, y, radius) {
+        ctx.beginPath();
+        ctx.strokeStyle = this.color;
+        ctx.shadowBlur = 2.5*unit;
+        ctx.arc(x, y, radius*0.1*unit, 0, 2*Math.PI);
+        ctx.stroke();
+        ctx.closePath();
+      }
+    }
+  }
+
+  updateProperties() {
+    this.width = Math.random() * 1*unit + 1.5*unit;
+    this.height = this.width;
+    this.x = Math.random() * (c.width - this.width);
+    this.y = (Math.random() * (1/3) * c.height - this.height) + (1/3) * c.height; 
+    this.color = this.colors[Math.floor(Math.random() * this.colors.length)];
+    this.score = this.width/2;
   }
 }
 
@@ -96,14 +135,22 @@ class Food extends Structure {
 
 //Creates game components
 const game = {
-  friction: new Physics(.05*unit),
+  friction: new Physics(.02*unit),
   gravity: new Physics(.25*unit),
-  floor: new Structure("fixed", c.width, c.height*1/3, 0, c.height*2/3, "#333"),
-  bg: new Structure("fixed", c.width, c.height*2/3 + 1*unit, 0, 0, "#222"),
+  floor: new Structure(["fixed"], c.width, c.height*1/3, 0, c.height*2/3, "#333"),
+  bg: new Structure(["fixed"], c.width, c.height*2/3 + 1*unit, 0, 0, "#222"),
   player: new Player(5*unit, 5*unit, 10*unit, 8*unit, 1, "#0ff"),
+  food: [],
 }
-const { friction, gravity, floor, bg, player } = game;
 
+//Extracts game components from game
+const { friction, gravity, floor, bg, player, food } = game;
+
+//Creates individual food components
+let numFood = 20;
+for (let i = 1; i <= numFood; i++) {
+  food.push(new Food());
+}
 
 /* ===============================
       Game Functions Definition
@@ -124,11 +171,13 @@ const drawMap = () => {
 const calcAirTime = () => {
   for (let comp in game) {
     comp = game[comp];
-    if (comp.type === "dynamic") {
-      if (comp.y < floor.y - comp.height) {
-        comp.airTime++;
-      } else {
-        comp.airTime = 0;
+    if (comp.type) {
+      if (comp.type.includes("dynamic")) {
+        if (comp.y < floor.y - comp.height) {
+          comp.airTime++;
+        } else {
+          comp.airTime = 0;
+        }
       }
     }
   }
@@ -138,8 +187,10 @@ const calcAirTime = () => {
 const applyGravity = () => {
   for (let comp in game) {
     comp = game[comp];
-    if (comp.type === "dynamic" && comp.y < floor.y - comp.height) {
-      comp.y += gravity.magnitude * comp.airTime;
+    if (comp.type) {
+      if (comp.type.includes("dynamic") && comp.y < floor.y - comp.height) {
+        comp.y += gravity.magnitude * comp.airTime;
+      }
     }
   }
 }
@@ -216,7 +267,7 @@ const applyJump = () => {
   }
 }
 
-//Allows player to move forward
+//Allows dynamic structures to move forward
 const applyShift = () => {
   for (let comp in game) {
     comp = game[comp];
@@ -226,52 +277,109 @@ const applyShift = () => {
   }
 }
 
-const applyWall = () => {
+//Allows dynamic structures to get hit off wall
+const applyWallHitBox = () => {
   for (let comp in game) {
     comp = game[comp];
     let { type, x, direction, width } = comp; 
-    if (type === 'dynamic') {
-      if (x < 0 && direction === -1) {
-        comp.x = 0;
-        comp.direction = 1;
-      }
-      if (x > c.width - width && direction === 1) {
-        comp.x = c.width - width;
-        comp.direction = -1;
+    if (type) {
+      if (type.includes('dynamic')) {
+        if (x < 0 && direction === -1) {
+          comp.x = 0;
+          comp.direction = 1;
+        }
+        if (x > c.width - width && direction === 1) {
+          comp.x = c.width - width;
+          comp.direction = -1;
+        }
       }
     }
   }
 }
 
 //Prevents structures from clipping through the ground
-const yCorrection = () => {
+const applyFloorHitBox = () => {
   for (let comp in game) {
     comp = game[comp];
     let { type, y, height } = comp;
-    if (type === "dynamic" && y > floor.y - height) {
-      comp.y = floor.y - height;
+    if (type) {
+      if (type.includes("dynamic") && y > floor.y - height) {
+        comp.y = floor.y - height;
+      }
     }
   }
 }
 
 //Draws Player
 const drawPlayer = () => {
-  player.updateProperties();
+  player.updateCenter();
   player.addGlow();
 
+  //Calculates the degree by which player should be rotated
   if (player.y < floor.y - player.height) {
     player.rotation += 90/player.rotationI;
   } else {
     player.rotation = 90 * player.rotationN;
   }
 
+  //Appropriately rotates the player
   ctx.translate(player.xCenter, player.yCenter);
   ctx.rotate(player.rotation * player.direction * (Math.PI / 180));
   ctx.translate(-player.xCenter, -player.yCenter);
+
   player.draw();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+//Allows food to be eaten
+const applyFoodEdibility = () => {
+  for (let food in game.food) {
+    food = game.food[food];
+    for (let comp in game) {
+      comp = game[comp];
+      if (comp.type) {
+        if (comp.type.includes("consumer")) {
+          if (comp.x <= food.x + food.width && 
+              comp.x + comp.width >= food.x + food.width &&
+              comp.y <= food.y + food.height &&
+              comp.y + comp.height >= food.y + food.height) {
+            food.exists = false;
+            comp.score += food.score;
+            food.score = 0;
+            food.spawnTime = food.spawnTimeInit;
+          }
+        }
+      }
+    }
+  }
+}
+
+//Draws food
+const drawFood = () => {
+  for (let food in game.food) {
+    food = game.food[food];
+    if (food.spawnTime === 0) {
+      food.spawnTime = food.spawnTimeInit;
+      food.exists = true;
+      food.dreg.counter = 0;
+      food.updateProperties();
+    }
+    if (food.exists) {
+      food.addGlow();
+      food.draw();
+    } 
+    if (food.exists === false) {
+      food.dreg.counter++;
+      if (food.spawnTime > 0) {
+        food.spawnTime--;
+      }
+      if (food.dreg.counter <= food.dreg.counterCap) {
+        food.updateCenter();
+        food.dreg.draw(food.xCenter, food.yCenter, food.dreg.counter);
+      }
+    }
+  }
+}
 
 /* ===============================
     Game Functions Implementation 
@@ -283,16 +391,18 @@ const animate = () => {
   window.requestAnimationFrame(animate);
   
   clearCanvas();
-  drawMap();
   calcAirTime();
   applyGravity();
   applyFriction();
   applyJump();
   applyShift();
-  applyWall();
-  yCorrection();
+  applyWallHitBox();
+  applyFloorHitBox();
+  applyFoodEdibility();
+  drawMap();
+  drawFood();
   drawPlayer();
-  
+
 }
 
 animate();
@@ -311,7 +421,7 @@ window.addEventListener("keydown", function (e) {
   }
 });
 window.addEventListener("keydown", function (e) {
-  if (e.key == "s" || e.key == "ArrowDown" || e.key == "D") {
+  if (e.key == "s" || e.key == "ArrowDown" || e.key == "S") {
     player.speed = 0;
     player.jumpPower = player.jumpPowerInit;
     player.jumpChargeTime = 0;
@@ -327,9 +437,9 @@ window.addEventListener("keydown", function (e) {
               Problems
    =============================== */
 const problems = [
+  'Food grows and shrinks',
   'Ground needs to glow when player falls',
   'There needs to be food',
-  'Stop repeating the for (let comp in game) loop',
   'Needs Improved Documentation',
   'Needs graph explaining player status',
 ];
