@@ -23,6 +23,4 @@
 
 ## Notes
 
-Box can easily traverse surroundings by jumping around. It's wonderful.
-
-Next step, food.
+Box can easily traverse surroundings by jumping around and eating food. It's wonderful.
