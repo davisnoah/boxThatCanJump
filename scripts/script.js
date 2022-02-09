@@ -80,7 +80,12 @@ class Player extends Structure {
     this.rotation = 0;
     this.rotationI = 0;
     this.rotationN = 0;
-    this.score = 0;
+    this.score = {
+      value: 0,
+      valueCurr: 0,
+      valueSpeed: (this.value/this.valueCurr)/30,
+      isNew: null,
+    };
   }
 }
 
@@ -98,7 +103,7 @@ class Food extends Structure {
       (Math.random() * 1/3*c.height - height) + 1/3*c.height, 
       colors[Math.floor(Math.random() * colors.length)], 
     )
-    this.score = this.width/2;
+    this.score = Math.ceil(this.width/2);
     this.colors = colors;  
     this.exists = true;
     this.spawnTimeInit = 45;
@@ -124,7 +129,7 @@ class Food extends Structure {
     this.x = Math.random() * (c.width - this.width);
     this.y = (Math.random() * (1/3) * c.height - this.height) + (1/3) * c.height; 
     this.color = this.colors[Math.floor(Math.random() * this.colors.length)];
-    this.score = this.width/2;
+    this.score = Math.ceil(this.width/2);
   }
 }
 
@@ -340,11 +345,11 @@ const applyFoodEdibility = () => {
       if (comp.type) {
         if (comp.type.includes("consumer")) {
           if (comp.x <= food.x + food.width && 
-              comp.x + comp.width >= food.x + food.width &&
+              comp.x + comp.width >= food.x &&
               comp.y <= food.y + food.height &&
-              comp.y + comp.height >= food.y + food.height) {
+              comp.y + comp.height >= food.y) {
             food.exists = false;
-            comp.score += food.score;
+            comp.score.value += food.score;
             food.score = 0;
             food.spawnTime = food.spawnTimeInit;
           }
@@ -352,6 +357,25 @@ const applyFoodEdibility = () => {
       }
     }
   }
+}
+
+//Draws the player's score
+const drawScore = () => {
+  const score = game.player.score;
+  score.valueSpeed = (score.value - score.valueCurr)/30;
+  if (score.valueSpeed < game.food[0].score/30) {
+    score.valueSpeed = game.food[0].score/30;
+  }
+  score.valueCurr += score.valueSpeed;
+  if (score.valueCurr > score.value) {
+    score.valueCurr = score.value;
+  }
+  ctx.beginPath();
+  ctx.fillStyle = player.color;
+  ctx.font = `normal 300 ${5*unit}px Arial`;
+  ctx.textAlign = "center";
+  ctx.fillText(`${parseInt(score.valueCurr)} Points`, c.width/2, c.width/13.33333);
+  ctx.closePath();
 }
 
 //Draws food
@@ -400,6 +424,7 @@ const animate = () => {
   applyFloorHitBox();
   applyFoodEdibility();
   drawMap();
+  drawScore();
   drawFood();
   drawPlayer();
 
@@ -436,10 +461,8 @@ window.addEventListener("keydown", function (e) {
 /* ===============================
               Problems
    =============================== */
-const problems = [
-  'Food grows and shrinks',
-  'Ground needs to glow when player falls',
-  'There needs to be food',
-  'Needs Improved Documentation',
-  'Needs graph explaining player status',
-];
+
+  //Food grows and shrinks
+  //Ground needs to glow when player falls
+  //Needs Improved Documentation
+  //Needs graph explaining player status
