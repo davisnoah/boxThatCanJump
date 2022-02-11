@@ -250,7 +250,6 @@ const applyJump = () => {
       } while (simY < 0);
       player.rotationI = simAir;
     }
-
     if (comp.isJumping) {
       comp.y -= comp.jumpPower;
       if (comp.y <= floor.y - comp.height && comp.jumpPower > (gravity.magnitude * comp.airTime)) {
@@ -415,12 +414,10 @@ const drawFood = () => {
 /* ===============================
     Game Functions Implementation 
    =============================== */
-
 //Calls all game functions every frame.
 const animate = () => {
 
   window.requestAnimationFrame(animate);
-
   clearCanvas();
   calcAirTime();
   applyGravity();
