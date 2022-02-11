@@ -461,3 +461,7 @@ window.addEventListener("keydown", function (e) {
     player.direction = 1;
   }
 });
+
+window.addEventListener("touchstart", function (e) {
+  player.jumpInit = true;
+})
