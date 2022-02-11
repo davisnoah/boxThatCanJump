@@ -49,8 +49,25 @@ h1 {
 }
 
 #c {
+  position: relative;
   box-shadow: 0px 0px 20px 0px;
   border-radius: 5px;
   display: block;
   margin: auto;
+}
+
+#tap-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 67%;
+}
+
+#tap-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 67%;
 }

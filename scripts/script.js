@@ -218,7 +218,6 @@ const applyFriction = () => {
   }
 }
 
-
 //Allows Player to Jump
 const applyJump = () => {
   for (let comp in game) {
@@ -379,9 +378,9 @@ const drawScore = () => {
   }
   ctx.beginPath();
   ctx.fillStyle = player.color;
-  ctx.font = `normal 300 ${5 * unit}px Arial`;
+  ctx.font = `normal 100 ${5 * unit}px Arial`;
   ctx.textAlign = "center";
-  ctx.fillText(`${parseInt(score.valueCurr)} Points`, c.width / 2, c.width / 13.33333);
+  ctx.fillText(`${parseInt(score.valueCurr)} Points`, 50 * unit, 7.5 * unit);
   ctx.closePath();
 }
 
@@ -455,13 +454,19 @@ window.addEventListener("keydown", function (e) {
     player.speed = 0;
     player.jumpPower = player.jumpPowerInit;
     player.jumpChargeTime = 0;
-  }
+  };
 
   if (e.key == "d" || e.key == "ArrowRight" || e.key == "D") {
     player.direction = 1;
   }
 });
 
-window.addEventListener("touchstart", function (e) {
+document.getElementById('tap-left').addEventListener("touchstart", function (e) {
   player.jumpInit = true;
-})
+  player.direction = -1;
+});
+
+document.getElementById('tap-right').addEventListener("touchstart", function (e) {
+  player.jumpInit = true;
+  player.direction = 1;
+});
